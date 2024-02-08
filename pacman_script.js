@@ -1,5 +1,7 @@
 
 
+const SCORE_TEXT = document.getElementById("score");
+
 const CANVAS = document.getElementById("canvas");
 const CANVAS_CTX = CANVAS.getContext("2d");
 const CANV_WIDTH = CANVAS.width;
@@ -35,12 +37,12 @@ var MAP =   [[WALL, WALL, WALL, WALL, WALL, WALL, WALL, WALL, WALL, WALL, WALL, 
 // walls
 const EMPTY_RECT_COLOR = "#000000";
 
-const WALL_COLOR = "#434afa";
+const WALL_COLOR = "#2e8f21";
 const WALL_WIDTH = 26;
 const WALL_HEIGHT = WALL_WIDTH;
 
 const CON_WALL_COLOR = "#000000";
-const CON_WALL_WIDTH = 15;
+const CON_WALL_WIDTH = 12;
 const CON_WALL_HEIGHT = CON_WALL_WIDTH;
 
 const TURN_COLOR = "#123123";
@@ -53,17 +55,25 @@ var turn_rects_saved = false;
 const X = 0, Y = 1, PIXEL_COORDINATES = 1, ARR_COORDINATES = 0, ROW = 0, COLUMN = 1, ALLOWED_DIRECTIONS = 1;
 const CENTER_COORDINATES = 0;
 
-// map centering calculations
+// map centering calculationsva
 const MAP_HEIGHT = MAP.length * WALL_HEIGHT;
 const MAP_WIDTH = MAP[0].length * WALL_WIDTH;
 const MAP_START_WIDTH = (CANV_WIDTH-MAP_WIDTH) / 2;
 const MAP_START_HEIGHT = (CANV_HEIGHT-MAP_HEIGHT) / 2;
 
+// coins
+
+const COIN_COLOR = "#deeba0";
+const COIN_RADIUS = 3;
+// [[coin_x, coin_y], [...]]
+var COINS = [];
+
 // player 
-const PLAYER_COLOR = "#f7f743";
+const PLAYER_COLOR = "#d6132d";
 const PLAYER_WALL_SPACING = 2
 const P_CIRCLE_RADIUS = (WALL_WIDTH / 2) - PLAYER_WALL_SPACING;
 const PLAYER_SPEED = 1;
+var PLAYER_SCORE = 0;
 const UP = 0, DOWN = 1, LEFT = 2, RIGHT = 3;
 
 var player_row = 1;
@@ -266,9 +276,96 @@ function isWall(x, y) {
     return false;
 }
 
+function drawCoins() {
+    CANVAS_CTX.fillStyle = COIN_COLOR;
+    
+    for(var coin_num = 0; coin_num<COINS.length; coin_num++) {
+
+        if(COINS[coin_num] != null) {
+            CANVAS_CTX.beginPath();
+            CANVAS_CTX.arc(COINS[coin_num][X], COINS[coin_num][Y], COIN_RADIUS, 0, 2 * Math.PI);
+            CANVAS_CTX.fill();
+        }
+    }
+}
+
+function addCoinsRow(row, start_col, end_col, edge_first=false, edge_last=false) {
+    for(var col = start_col; col<=end_col; col++) {
+        if(edge_first && col == start_col) {
+            COINS.push([MAP_START_WIDTH + (WALL_WIDTH * (col-1)), MAP_START_HEIGHT + (WALL_HEIGHT * row) - (WALL_HEIGHT/2)]);
+        }
+        COINS.push([MAP_START_WIDTH + (WALL_WIDTH * col) - (WALL_WIDTH/2), MAP_START_HEIGHT + (WALL_HEIGHT * row) - (WALL_HEIGHT/2)]);
+        if(col != end_col) {
+            COINS.push([MAP_START_WIDTH + (WALL_WIDTH * col), MAP_START_HEIGHT + (WALL_HEIGHT * row) - (WALL_HEIGHT/2)]);    
+        }
+        if(edge_last && col == end_col) {
+            COINS.push([MAP_START_WIDTH + (WALL_WIDTH * col), MAP_START_HEIGHT + (WALL_HEIGHT * row) - (WALL_HEIGHT/2)]);    
+        }
+    }
+}
+
+function addCoinsCol(col, start_row, end_row, edge_first=false, edge_last=false) {
+    for(var row = start_row; row<=end_row; row++) {
+        if(edge_first && row == start_row) {
+            COINS.push([MAP_START_WIDTH + (WALL_WIDTH * col) - (WALL_WIDTH/2), MAP_START_HEIGHT + (WALL_HEIGHT * (row-1))]);
+        }
+        COINS.push([MAP_START_WIDTH + (WALL_WIDTH * col) - (WALL_WIDTH/2), MAP_START_HEIGHT + (WALL_HEIGHT * row) - (WALL_HEIGHT/2)]);
+        if(row != end_row) {
+            COINS.push([MAP_START_WIDTH + (WALL_WIDTH * col) - (WALL_HEIGHT/2), MAP_START_HEIGHT + (WALL_HEIGHT * row)]);
+        }
+        if(edge_last && row == end_row) {
+            COINS.push([MAP_START_WIDTH + (WALL_WIDTH * col) - (WALL_HEIGHT/2), MAP_START_HEIGHT + (WALL_HEIGHT * row)]);
+        }
+    }
+}
+
+function collectCoins() {
+    
+    for(var coin_num = 0; coin_num<COINS.length; coin_num++) {
+        if(COINS[coin_num] != null) {
+            if((player_x + P_CIRCLE_RADIUS == COINS[coin_num][X] && player_y == COINS[coin_num][Y]) ||
+               (player_x - P_CIRCLE_RADIUS == COINS[coin_num][X] && player_y == COINS[coin_num][Y]) ||
+               (player_y + P_CIRCLE_RADIUS == COINS[coin_num][Y] && player_x == COINS[coin_num][X]) ||
+               (player_y - P_CIRCLE_RADIUS == COINS[coin_num][Y] && player_x == COINS[coin_num][X])) {
+                
+                delete COINS[coin_num];
+                PLAYER_SCORE += 1;
+
+                if(PLAYER_SCORE < 10) {
+                    SCORE_TEXT.innerHTML = "00" + PLAYER_SCORE;
+                } else if (PLAYER_SCORE < 100 && PLAYER_SCORE >= 10) {
+                    SCORE_TEXT.innerHTML = "0" + PLAYER_SCORE;
+                } else {
+                    SCORE_TEXT.innerHTML = "" + PLAYER_SCORE;
+                }
+            }
+        }
+    }
+}
+
+
+addCoinsRow(10,3,5, true);
+addCoinsCol(2,7,10);
+addCoinsRow(10,16,19);
+addCoinsCol(19,7,9, false, true);
+addCoinsCol(19,2,5);
+addCoinsRow(2,16,18, false, true);
+addCoinsRow(2,7,14);
+addCoinsRow(10,7,14);
+addCoinsCol(7,5,7, true, true);
+addCoinsCol(14,5,7, true, true);
+addCoinsCol(4,4,5);
+addCoinsCol(4,7,8);
+addCoinsCol(17,4,5);
+addCoinsCol(17,7,8);
+addCoinsRow(4,7,14);
+addCoinsRow(8,7,14);
 
 function gameLoop() {
     drawMap();
+    if(COINS.length != 0) {
+        drawCoins();
+    }
 
     for(var turn_point_num=0; turn_point_num<TURN_RECTS_CENTERS.length; turn_point_num++) {
 
@@ -283,6 +380,7 @@ function gameLoop() {
     }
     drawPlayer();
     movePlayer();
+    collectCoins();
 
     setTimeout(gameLoop, FRAME_TIME);
 }
